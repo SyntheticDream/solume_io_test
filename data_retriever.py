@@ -1,8 +1,8 @@
-from time import sleep
+from time import sleep, time
 from json import dumps
+from pathlib import Path
 
 import requests
-import maya
 
 
 def get_all_currencies(url='https://poloniex.com/public?command=return24hVolume'):
@@ -12,12 +12,16 @@ def get_all_currencies(url='https://poloniex.com/public?command=return24hVolume'
     return [k for k in data.keys() if 'total' not in k]
 
 
-def main():
-    pairs = get_all_currencies()
+def parse_data(start=None, end=None):
 
-    n = maya.now()
-    start = n.subtract(minutes=5).epoch
-    end = n.epoch
+    t = time()
+    if end is None:
+        end = int(t)
+
+    if start is None:
+        start = int(t - 300)
+
+    pairs = get_all_currencies()
 
     output = dict()
 
@@ -43,8 +47,15 @@ def main():
 
 
 if __name__ == '__main__':
-    d = main()
 
-    with open('output.json', 'w') as f:
-        form = dumps(d, indent=1)
-        f.write(form)
+    output_file = Path('output.json')
+
+    start_time = None
+
+    if output_file.exists():
+        start_time = int(output_file.stat().st_mtime)
+
+    d = parse_data(start=start_time)
+    form = dumps(d, indent=1)
+
+    output_file.write_text(form)
